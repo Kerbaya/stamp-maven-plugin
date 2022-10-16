@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.kerbaya.preserve-maven-plugin.it</groupId>
+  <artifactId>one-previous</artifactId>
+  <versioning>
+    <versions>
+      <version>1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20221016190400</lastUpdated>
+  </versioning>
+</metadata>

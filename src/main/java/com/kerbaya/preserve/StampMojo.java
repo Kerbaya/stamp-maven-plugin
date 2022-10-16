@@ -59,7 +59,9 @@ import lombok.Setter;
 		name="stamp",
 		requiresProject=true,
 		requiresDirectInvocation=true,
-		threadSafe=true)
+		threadSafe=true,
+		aggregator=true,
+		requiresOnline=true)
 public class StampMojo implements org.apache.maven.plugin.Mojo
 {
 	private static final String ALT_REPO_TOKEN_SEPARATOR = "::";
@@ -99,7 +101,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
     @Parameter(property="altSnapshotDeploymentRepository")
     private String altSnapshotDeploymentRepository;
     
-    protected RemoteRepository getRepo(String id, String url)
+    protected RemoteRepository buildRepo(String id, String url)
     {
         RemoteRepository remoteRepo = new RemoteRepository.Builder(id, "default", url).build();
         
@@ -125,7 +127,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
         return builder.build();
     }
     
-    private RemoteRepository getAltSnapshotRepo()
+    private RemoteRepository getAltDistributionRepo()
     {
     	String altRepo;
     	if ((altRepo = altSnapshotDeploymentRepository) == null)
@@ -144,43 +146,11 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 
         	if (!id.isEmpty() && !url.isEmpty())
         	{
-        		return getRepo(id, url);
+        		return buildRepo(id, url);
         	}
     	}
     	
     	throw new IllegalStateException("invalid alt repo syntax: " + altRepo);
-    }
-    
-    private RemoteRepository getSnapshotDistRepo(MavenProject project)
-    {
-    	RemoteRepository altRepo = getAltSnapshotRepo();
-    	if (altRepo != null)
-    	{
-    		return altRepo;
-    	}
-    	
-    	DistributionManagement dm = project.getDistributionManagement();
-    	if (dm == null)
-    	{
-    		return null;
-    	}
-    	
-		DeploymentRepository modelRepo = dm.getSnapshotRepository();
-		if (modelRepo == null)
-		{
-			modelRepo = dm.getRepository();
-			if (modelRepo == null)
-			{
-				return null;
-			}
-		}
-
-		if (!modelRepo.isUniqueVersion())
-		{
-			return null;
-		}
-		
-		return getRepo(modelRepo.getId(), modelRepo.getUrl());
     }
     
 	private void debug(String pattern, Object... args)
@@ -212,23 +182,42 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 	
 	private Long getNextBuildNumber(MavenProject project, String snapshotVersion)
 	{
-		RemoteRepository snapshotRepo = getSnapshotDistRepo(project);
-		
-		if (snapshotRepo == null)
-		{
-			throw new IllegalStateException("no distribution repo");
-		}
-		
+		boolean definitelySupportsUnique = false;
+    	RemoteRepository repo = getAltDistributionRepo();
+    	if (repo == null)
+    	{
+        	DistributionManagement dm = project.getDistributionManagement();
+        	if (dm != null)
+        	{
+	    		DeploymentRepository modelRepo = dm.getSnapshotRepository();
+	    		if (modelRepo == null)
+	    		{
+	    			modelRepo = dm.getRepository();
+	    		}
+	    		
+	    		if (modelRepo != null)
+	    		{
+	    			if (!modelRepo.isUniqueVersion())
+	    			{
+	    				return null;
+	    			}
+	    			
+	    			repo = buildRepo(modelRepo.getId(), modelRepo.getUrl());
+	    			definitelySupportsUnique = true;
+	    		}
+        	}
+    	}
+
 		VersionRequest verReq = new VersionRequest(
 				new DefaultArtifact(project.getGroupId(), project.getArtifactId(), "pom", snapshotVersion),
-				Collections.singletonList(snapshotRepo),
+				repo == null ? null : Collections.singletonList(repo),
 				null);
 		
 		VersionResult verRes;
 		
 		RepositorySystemSession nonCachedRss = new DefaultRepositorySystemSession(rss)
 				.setWorkspaceReader(null);
-//				.setConfigProperty("aether.versionResolver.noCache", true);
+
 		try
 		{
 			verRes = rs.resolveVersion(nonCachedRss, verReq);
@@ -253,9 +242,27 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		
 		if (lastVersion.equals(snapshotVersion))
 		{
+			/*
+			 * the repo already contains this artifact, and it isn't uniquely versioned
+			 */
 			List<Exception> exList = verRes.getExceptions();
 			if (exList.isEmpty())
 			{
+				if (definitelySupportsUnique)
+				{
+					/*
+					 * a little bit of a weird situation: a repo that is declared to support unique versioning, but it 
+					 * contains a non-unique version of this artifact.  we'll assume the repo settings changed or 
+					 * something, and we'll be the first unique version of this artifact in the repo
+					 */
+					return FIRST_BUILD_NUMBER;
+				}
+				
+				/*
+				 * we can't definitively tell if this repo supports unique snapshot-versioning.  I would lean
+				 * toward assuming it does, but this alt repo already has a non-unique snapshot in it for this 
+				 * artifact.  In this case, I'll assume it doesn't support unique versioning.
+				 */
 				return null;
 			}
 			
@@ -293,17 +300,15 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		return stripSnapshot(version) + "-" + SNAPSHOT_TIME_FORMAT.format(now) + "-" + nextBuildNumber;
 	}
 	
-	private void execute0() throws MavenInvocationException, CommandLineException, VersionResolutionException
+	private void update(MavenProject project, Instant now) throws MavenInvocationException, CommandLineException
 	{
-		if (rootProject.getOriginalModel().getVersion() == null)
+		if (project.getOriginalModel().getVersion() == null)
 		{
 			debug("inherited version");
 			return;
 		}
 		
-		Instant now = Instant.now();
-		
-		String nextVersion = getNextVersion(rootProject, now);
+		String nextVersion = getNextVersion(project, now);
 		if (nextVersion == null)
 		{
 			debug("no next version");
@@ -319,7 +324,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 				.setBatchMode(true)
 				.setNoTransferProgress(true)
 				.setDebug(log != null && log.isDebugEnabled())
-				.setPomFile(rootProject.getFile())
+				.setPomFile(project.getFile())
 				.setGoals(Collections.singletonList(SET_VERSION_GOAL))
 				.setProperties(p);
 		InvocationResult res = invoker.execute(ir);
@@ -335,6 +340,17 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		{
 			throw new IllegalStateException("set failed: " + rc);
 		}
+		
+		for (MavenProject child: project.getCollectedProjects())
+		{
+			update(child, now);
+		}
+	}
+	
+	private void execute0() throws MavenInvocationException, CommandLineException, VersionResolutionException
+	{
+		Instant now = Instant.now();
+		update(rootProject, now);
 	}
 	
 	@Override
