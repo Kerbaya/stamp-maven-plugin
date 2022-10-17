@@ -117,6 +117,7 @@
 						<goal>verify</goal>
 					</goals>
 					<configuration>
+						<settingsFile>${project.basedir}/src/it/settings.xml</settingsFile>
 						<parallelThreads>1.0C</parallelThreads>
 						<localRepositoryPath>${project.build.directory}/it-local-repo</localRepositoryPath>
 						<failIfNoProjects>true</failIfNoProjects>
