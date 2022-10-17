@@ -20,7 +20,7 @@
 <name>Stamp Maven Plugin</name>
 <description>Stamps Maven project versions for self-aware snapshot deploys</description>
 
-<url>https://www.kerbaya.com/stamp/</url>
+<url>https://www.kerbaya.com/stamp-maven-plugin/</url>
 
 <licenses>
 	<license>
@@ -30,8 +30,16 @@
 </licenses>
 
 <scm>
-	<url>https://github.com/Kerbaya/stamp</url>
+	<connection>scm:git:https://github.com/Kerbaya/stamp-maven-plugin.git</connection>
+	<developerConnection>scm:git:ssh://git@github.com/Kerbaya/stamp-maven-plugin.git</developerConnection>
+	<url>https://github.com/Kerbaya/stamp-maven-plugin/tree/1.0.0</url>
+	<tag>1.0.0</tag>
 </scm>
+
+<issueManagement>
+	<system>github</system>
+	<url>https://github.com/Kerbaya/stamp-maven-plugin/issues</url>
+</issueManagement>
 
 <developers>
 	<developer>
@@ -123,7 +131,94 @@
 				</execution>
 			</executions>
 		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-site-plugin</artifactId>
+			<version>3.12.1</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>site</goal>
+					</goals>
+					<configuration>
+						<topSiteURL>https://www.kerbaya.com/stamp-maven-plugin/</topSiteURL>
+						<skipDeploy>true</skipDeploy>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-source-plugin</artifactId>
+			<version>3.2.1</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>jar</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-javadoc-plugin</artifactId>
+			<version>3.4.1</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>jar</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.simplify4u.plugins</groupId>
+			<artifactId>sign-maven-plugin</artifactId>
+			<version>1.0.1</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>sign</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-plugin-plugin</artifactId>
+			<version>3.6.4</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>descriptor</goal>
+					</goals>
+					<configuration>
+						<goalPrefix>stamp</goalPrefix>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
 	</plugins>
 </build>
+
+<reporting>
+	<plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-project-info-reports-plugin</artifactId>
+			<version>3.4.1</version>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-plugin-plugin</artifactId>
+			<version>3.6.4</version>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-javadoc-plugin</artifactId>
+			<version>3.4.1</version>
+		</plugin>
+	</plugins>
+</reporting>
 
 </project>
