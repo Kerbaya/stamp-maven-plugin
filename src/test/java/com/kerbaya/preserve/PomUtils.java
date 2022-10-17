@@ -117,7 +117,7 @@ public class PomUtils
 	
 	public static void assertNoVersion(File baseDir, String... pomPath)
 	{
-		Assert.assertNull(getVersion(baseDir, pomPath));
+		Assert.assertEquals("", getVersion(baseDir, pomPath));
 	}
 	
 	private static void assertNumbers(CharBuffer cb, int count)

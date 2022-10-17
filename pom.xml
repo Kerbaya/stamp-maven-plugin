@@ -101,23 +101,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-invoker-plugin</artifactId>
 				<version>3.3.0</version>
-				<configuration>
-					<!--  
-					<mavenOpts>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000</mavenOpts>
-					-->
-					<localRepositoryPath>${project.build.directory}/it-local-repo</localRepositoryPath>
-					<failIfNoProjects>true</failIfNoProjects>
-					<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-					<addTestClassPath>true</addTestClassPath>
-					<properties>
-						<real-local-repo-url>file:/${settings.localRepository}</real-local-repo-url>
-						<it-repo-url>file:/${project.basedir}/src/it-repo</it-repo-url>
-					</properties>
-				</configuration>
-				<executions>
-					<execution>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</pluginManagement>
@@ -128,14 +111,29 @@
 			<executions>
 				<execution>
 					<?m2e ignore?>
-					<id>stamp-it</id>
 					<goals>
 						<goal>install</goal>
 						<goal>integration-test</goal>
 						<goal>verify</goal>
 					</goals>
 					<configuration>
-						<projectsDirectory>${project.basedir}/src/it/stamp</projectsDirectory>
+						<parallelThreads>1.0C</parallelThreads>
+						<projectsDirectory>${project.basedir}/src/it</projectsDirectory>
+						<!--  
+						<mavenOpts>-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000</mavenOpts>
+						-->
+						<localRepositoryPath>${project.build.directory}/it-local-repo</localRepositoryPath>
+						<failIfNoProjects>true</failIfNoProjects>
+						<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+						<addTestClassPath>true</addTestClassPath>
+						<properties>
+							<real-local-repo-url>file:/${settings.localRepository}</real-local-repo-url>
+							<it-repo-url>file:/${project.basedir}/src/it-repo</it-repo-url>
+						</properties>
+						<pomIncludes>
+							<pomInclude>*/0-*/pom.xml</pomInclude>
+							<pomInclude>*/1-*/*/pom.xml</pomInclude>
+						</pomIncludes>
 					</configuration>
 				</execution>
 			</executions>
