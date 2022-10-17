@@ -1,6 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 <modelVersion>4.0.0</modelVersion>
 
 <parent>
@@ -12,7 +13,7 @@
 
 <groupId>com.kerbaya</groupId>
 <artifactId>stamp-maven-plugin</artifactId>
-<version>1.0.0-SNAPSHOT</version>
+<version>1.0.0</version>
 
 <packaging>maven-plugin</packaging>
 
@@ -20,11 +21,6 @@
 <description>Stamps Maven project versions for self-aware snapshot deploys</description>
 
 <url>https://www.kerbaya.com/stamp/</url>
-<inceptionYear>2022</inceptionYear>
-<organization>
-	<name>Kerbaya Software</name>
-	<url>https://www.kerbaya.com</url>
-</organization>
 
 <licenses>
 	<license>
@@ -32,6 +28,10 @@
 		<url>https://www.gnu.org/licenses/gpl-3.0-standalone.html</url>
 	</license>
 </licenses>
+
+<scm>
+	<url>https://github.com/Kerbaya/stamp</url>
+</scm>
 
 <developers>
 	<developer>
@@ -43,18 +43,6 @@
 <prerequisites>
 	<maven>3.5</maven>
 </prerequisites>
-
-<scm>
-	<connection>scm:git:https://github.com/Kerbaya/stamp.git</connection>
-	<developerConnection>scm:git:ssh://git@github.com/Kerbaya/stamp.git</developerConnection>
-	<url>https://github.com/Kerbaya/stamp/tree/${project.scm.tag}</url>
-	<tag>${project.version}</tag>
-</scm>
-
-<issueManagement>
-	<system>github</system>
-	<url>https://github.com/Kerbaya/stamp/issues</url>
-</issueManagement>
 
 <dependencies>
 	<dependency>
