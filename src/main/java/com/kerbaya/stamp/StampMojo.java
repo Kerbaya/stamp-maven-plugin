@@ -45,6 +45,7 @@ import org.apache.maven.shared.utils.cli.CommandLineException;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.VersionRequest;
@@ -138,6 +139,8 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
     		}
     	}
     	
+    	debug("parsing alt repo %s", altRepo);
+    	
     	int sepIdx = altRepo.indexOf(ALT_REPO_TOKEN_SEPARATOR);
     	if (sepIdx != -1)
     	{
@@ -186,19 +189,24 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
     	RemoteRepository repo = getAltDistributionRepo();
     	if (repo == null)
     	{
+    		debug("alt repo not specified");
         	DistributionManagement dm = project.getDistributionManagement();
         	if (dm != null)
         	{
+        		debug("has distribution management");
 	    		DeploymentRepository modelRepo = dm.getSnapshotRepository();
 	    		if (modelRepo == null)
 	    		{
+	    			debug("no snapshot repo defined");
 	    			modelRepo = dm.getRepository();
 	    		}
 	    		
 	    		if (modelRepo != null)
 	    		{
+	    			debug("model-defined repo");
 	    			if (!modelRepo.isUniqueVersion())
 	    			{
+	    				debug("model repo does not use unique versions");
 	    				return null;
 	    			}
 	    			
@@ -207,9 +215,22 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 	    		}
         	}
     	}
+    	
+    	if (repo == null)
+    	{
+    		debug("no repo defined");
+    	}
+    	else
+    	{
+    		debug("using repo: %s", repo.getUrl());
+    	}
 
+    	Artifact arReq = new DefaultArtifact(project.getGroupId(), project.getArtifactId(), "pom", snapshotVersion);
+    	
+    	debug("looking up version for %s", arReq);
+    	
 		VersionRequest verReq = new VersionRequest(
-				new DefaultArtifact(project.getGroupId(), project.getArtifactId(), "pom", snapshotVersion),
+				arReq,
 				repo == null ? null : Collections.singletonList(repo),
 				null);
 		
@@ -224,15 +245,21 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		}
 		catch (VersionResolutionException e)
 		{
+			debug("error on version lookup: %s", e.getMessage());
+			
 			verRes = e.getResult();
 			if (verRes == null)
 			{
+				
+				debug("no version result");
 				throwOnResolveError(e.getCause());
 				return FIRST_BUILD_NUMBER;
 			}
 		}
 		
 		String lastVersion = verRes.getVersion();
+		
+		debug("last version: %s", lastVersion);
 		
 		if (lastVersion == null)
 		{
@@ -242,6 +269,8 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		
 		if (lastVersion.equals(snapshotVersion))
 		{
+			debug("repo contains non-unique snapshot");
+			
 			/*
 			 * the repo already contains this artifact, and it isn't uniquely versioned
 			 */
@@ -250,6 +279,8 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 			{
 				if (definitelySupportsUnique)
 				{
+					debug("repo supports unique, returning %d", FIRST_BUILD_NUMBER);
+					
 					/*
 					 * a little bit of a weird situation: a repo that is declared to support unique versioning, but it 
 					 * contains a non-unique version of this artifact.  we'll assume the repo settings changed or 
@@ -302,6 +333,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 	
 	private void update(MavenProject project, Instant now) throws MavenInvocationException, CommandLineException
 	{
+		debug("processing project %s", project);
 		if (project.getOriginalModel().getVersion() == null)
 		{
 			debug("inherited version");
@@ -315,7 +347,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 			return;
 		}
 		
-		debug("setting new version");
+		debug("setting new version: %s", nextVersion);
 		Properties p = new Properties();
 		p.setProperty("newVersion", nextVersion);
 		p.setProperty("generateBackupPoms", "false");
@@ -350,6 +382,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 	private void execute0() throws MavenInvocationException, CommandLineException, VersionResolutionException
 	{
 		Instant now = Instant.now();
+		debug("clock at %s", now);
 		update(rootProject, now);
 	}
 	
