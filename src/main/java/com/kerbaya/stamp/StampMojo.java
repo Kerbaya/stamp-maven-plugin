@@ -48,6 +48,7 @@ import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.repository.RepositoryPolicy;
 import org.eclipse.aether.resolution.VersionRequest;
 import org.eclipse.aether.resolution.VersionResolutionException;
 import org.eclipse.aether.resolution.VersionResult;
@@ -237,7 +238,10 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		VersionResult verRes;
 		
 		RepositorySystemSession nonCachedRss = new DefaultRepositorySystemSession(rss)
-				.setWorkspaceReader(null);
+				.setWorkspaceReader(null)
+				.setCache(null)
+				.setIgnoreArtifactDescriptorRepositories(true)
+				.setUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS);
 
 		try
 		{
