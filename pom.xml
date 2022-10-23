@@ -114,7 +114,6 @@
 					</goals>
 					<configuration>
 						<settingsFile>${project.basedir}/src/it/settings.xml</settingsFile>
-						<parallelThreads>1.0C</parallelThreads>
 						<localRepositoryPath>${project.build.directory}/it-local-repo</localRepositoryPath>
 						<failIfNoProjects>true</failIfNoProjects>
 						<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
@@ -123,10 +122,12 @@
 							<real-local-repo-url>file:/${settings.localRepository}</real-local-repo-url>
 							<it-repo-url>file:/${project.basedir}/src/it-repo</it-repo-url>
 						</properties>
+						<debug>true</debug>
 						<pomIncludes>
 							<pomInclude>0-*/pom.xml</pomInclude>
 							<pomInclude>1-*/*/pom.xml</pomInclude>
 						</pomIncludes>
+						<parallelThreads>1.0C</parallelThreads>
 					</configuration>
 				</execution>
 			</executions>

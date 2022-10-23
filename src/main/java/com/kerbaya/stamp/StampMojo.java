@@ -42,13 +42,11 @@ import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.apache.maven.shared.utils.cli.CommandLineException;
-import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.repository.RemoteRepository;
-import org.eclipse.aether.repository.RepositoryPolicy;
 import org.eclipse.aether.resolution.VersionRequest;
 import org.eclipse.aether.resolution.VersionResolutionException;
 import org.eclipse.aether.resolution.VersionResult;
@@ -184,7 +182,8 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 
 	}
 	
-	private Long getNextBuildNumber(MavenProject project, String snapshotVersion)
+	private Long getNextBuildNumber(
+			RepositorySystemSession versionLookupRss, MavenProject project, String snapshotVersion)
 	{
 		boolean definitelySupportsUnique = false;
     	RemoteRepository repo = getAltDistributionRepo();
@@ -237,15 +236,9 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		
 		VersionResult verRes;
 		
-		RepositorySystemSession nonCachedRss = new DefaultRepositorySystemSession(rss)
-				.setWorkspaceReader(null)
-				.setCache(null)
-				.setIgnoreArtifactDescriptorRepositories(true)
-				.setUpdatePolicy(RepositoryPolicy.UPDATE_POLICY_ALWAYS);
-
 		try
 		{
-			verRes = rs.resolveVersion(nonCachedRss, verReq);
+			verRes = rs.resolveVersion(versionLookupRss, verReq);
 		}
 		catch (VersionResolutionException e)
 		{
@@ -315,7 +308,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		return Long.parseLong(m.group(1)) + BUILD_NUMBER_INCREMENT;
 	}
 	
-	private String getNextVersion(MavenProject project, Instant now)
+	private String getNextVersion(RepositorySystemSession versionLookupRss, MavenProject project, Instant now)
 	{
 		String version = project.getVersion();
 		if (version == null || !version.endsWith(SNAPSHOT_SUFFIX))
@@ -324,7 +317,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 			return null;
 		}
 		
-		Long nextBuildNumber = getNextBuildNumber(project, version);
+		Long nextBuildNumber = getNextBuildNumber(versionLookupRss, project, version);
 		
 		if (nextBuildNumber == null)
 		{
@@ -335,7 +328,8 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		return stripSnapshot(version) + "-" + SNAPSHOT_TIME_FORMAT.format(now) + "-" + nextBuildNumber;
 	}
 	
-	private void update(MavenProject project, Instant now) throws MavenInvocationException, CommandLineException
+	private void update(RepositorySystemSession versionLookupRss, MavenProject project, Instant now) 
+			throws MavenInvocationException, CommandLineException
 	{
 		debug("processing project %s", project);
 		if (project.getOriginalModel().getVersion() == null)
@@ -344,7 +338,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 			return;
 		}
 		
-		String nextVersion = getNextVersion(project, now);
+		String nextVersion = getNextVersion(versionLookupRss, project, now);
 		if (nextVersion == null)
 		{
 			debug("no next version");
@@ -379,7 +373,7 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 		
 		for (MavenProject child: project.getCollectedProjects())
 		{
-			update(child, now);
+			update(versionLookupRss, child, now);
 		}
 	}
 	
@@ -387,7 +381,10 @@ public class StampMojo implements org.apache.maven.plugin.Mojo
 	{
 		Instant now = Instant.now();
 		debug("clock at %s", now);
-		update(rootProject, now);
+		try (NonCachingSessionFactory uncachedRssFx = new NonCachingSessionFactory(rs, rss))
+		{
+			update(uncachedRssFx.get(), rootProject, now);
+		}
 	}
 	
 	@Override
