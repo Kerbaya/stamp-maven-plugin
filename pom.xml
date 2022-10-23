@@ -13,7 +13,7 @@
 
 <groupId>com.kerbaya</groupId>
 <artifactId>stamp-maven-plugin</artifactId>
-<version>1.0.3-SNAPSHOT</version>
+<version>1.0.3</version>
 
 <packaging>maven-plugin</packaging>
 
